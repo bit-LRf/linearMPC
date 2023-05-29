@@ -22,14 +22,15 @@ int main(int argc, char*  argv[])
     {
         startTime = clock();
 
-        m_mpc.mpcUpdates();
+        if(m_mpc.mpcUpdates())
+        {
+            endTime = clock();
 
-        endTime = clock();
+            std::cout << "cycle once cost: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
 
-        std::cout << "cycle once cost: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
+            rate.sleep();
 
-        rate.sleep();
-
-        m_mpc.mpcOutputs();
+            m_mpc.mpcOutputs();
+        }
     }
 }

@@ -24,6 +24,7 @@
 #include    <cmath>
 #include    <math.h>
 #include    <vector>
+#include    <queue>
 #include    <ctime>
 
 const double PI = 3.1415926535; 
@@ -51,6 +52,24 @@ struct param
     Eigen::VectorXd observe_weight_vector;
 
     Eigen::VectorXd solution_weight_vector;
+};
+
+struct distance_node
+{
+    double distance;
+
+    int sequence;
+
+    bool operator<(const distance_node &other)const
+    {
+        if(distance < other.distance)
+        {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
 };
 
 
@@ -122,7 +141,7 @@ public:
         Eigen::MatrixXd control
     );
 
-    void getReference(
+    bool getReference(
         Eigen::MatrixXd state
     );
 
@@ -153,7 +172,7 @@ public:
 
     );
 
-    void mpcUpdates(
+    bool mpcUpdates(
 
     );
 
@@ -164,8 +183,12 @@ public:
 public:
     param parameters;
 
+    bool position_update_flag;
+
 private:
     clock_t startTime,endTime;
+
+    std::priority_queue<distance_node> distance_queue;
 
     Eigen::Matrix4d transition_matrix;
 
@@ -184,6 +207,7 @@ private:
     void subPathTopicCallBack(const nav_msgs::Path& msg);
 
     geometry_msgs::Twist control_msg;
+
     ros::Publisher  cmd_publisher;
 
     ros::Publisher  opt_path_publisher;

@@ -2,11 +2,13 @@
 
 LinearMPC_app::LinearMPC_app(ros::NodeHandle& nh)
 {
+    position_update_flag = false;
+
     state_subscriber = nh.subscribe("/odom",1,&LinearMPC_app::subOdomTopicCallBack,this);
 
-    path_subscriber = nh.subscribe("/mpc/ref_path",1,&LinearMPC_app::subPathTopicCallBack,this);
+    path_subscriber = nh.subscribe("/planning/path",1,&LinearMPC_app::subPathTopicCallBack,this);
 
-    cmd_publisher = nh.advertise<geometry_msgs::Twist>("/cmd_vel",5,true);
+    cmd_publisher = nh.advertise<geometry_msgs::Twist>("/mpc/cmd_vel",5,true);
 
     opt_path_publisher = nh.advertise<nav_msgs::Path>("/mpc/opt_path",5,true);
 
@@ -30,9 +32,9 @@ void LinearMPC_app::mpcInitialize(){
 
     accumulation_matrix = Eigen::MatrixXd::Constant(Np,Np,0);
 
-    for (size_t i = 0; i < Np; i++)
+    for (int i = 0; i < Np; i++)
     {
-        for (size_t j = 0; j < Np; j++)
+        for (int j = 0; j < Np; j++)
         {
             if (i >= j)
             {
@@ -49,12 +51,18 @@ void LinearMPC_app::mpcInitialize(){
     state_eq = state;
 }
 
-void LinearMPC_app::mpcUpdates(){
+bool LinearMPC_app::mpcUpdates(){
     int Np = parameters.Np;
     int Nx = parameters.Nx;
     int Nu = parameters.Nu;
 
     ros::spinOnce();
+
+    if(!position_update_flag)
+    {
+        return false;
+    }
+    position_update_flag = false;
 
     solution = Eigen::MatrixXd::Zero(Np*Nu,1);
 
@@ -64,7 +72,10 @@ void LinearMPC_app::mpcUpdates(){
     double y_0 = state_0(1);
     double phi_0 = state_0(2);
 
-    getReference(state_0);
+    if(!getReference(state_0))
+    {
+        return false;
+    }
 
     transition_matrix <<
             1 , 0 , 0 , -x_0,
@@ -90,7 +101,7 @@ void LinearMPC_app::mpcUpdates(){
     observe_reference.block(0 , 0 , 2 , Np) = observe_relative_reference.block(0 , 0 , 2 , Np);
     observe_reference.block(2 , 0 , 1 , Np) = observe_reference.block(2 , 0 , 1 , Np).array() - phi_0;
 
-    for (size_t i = 0; i < Np; i++)
+    for (int i = 0; i < Np; i++)
     {
         observe_reference(2,i) = mod2pi(observe_reference(2,i));
     }
@@ -101,6 +112,8 @@ void LinearMPC_app::mpcUpdates(){
     mpcOptmizer_multiple_shooting(Eigen::MatrixXd::Zero(Nx , 1) , control_n1 , solution , observe_reference);
 
     control_output = control_n1 + solution.block(0 , 0 , 2 , 1);
+
+    return true;
 }
 
 void LinearMPC_app::mpcOutputs(){
@@ -137,11 +150,11 @@ void LinearMPC_app::mpcOutputs(){
 
         observe_optmize.block(0 , 0 , 2 , Np) = observe_relative_optmize.block(0 , 0 , 2 , Np);
 
-        opt_path_msg.header.frame_id = "/mpc/map";
+        opt_path_msg.header.frame_id = "/map";
 
         geometry_msgs::PoseStamped pose;
 
-        for (size_t i = 0; i < Np; i++)
+        for (int i = 0; i < Np; i++)
         {
             pose.pose.position.x = observe_optmize(0,i);
             pose.pose.position.y = observe_optmize(1,i);
