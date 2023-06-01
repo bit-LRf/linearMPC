@@ -8,7 +8,7 @@ LinearMPC_app::LinearMPC_app(ros::NodeHandle& nh)
 
     path_subscriber = nh.subscribe("/planning/path",1,&LinearMPC_app::subPathTopicCallBack,this);
 
-    cmd_publisher = nh.advertise<geometry_msgs::Twist>("/mpc/cmd_vel",5,true);
+    cmd_publisher = nh.advertise<geometry_msgs::Twist>("/cmd_vel",5,true);
 
     opt_path_publisher = nh.advertise<nav_msgs::Path>("/mpc/opt_path",5,true);
 

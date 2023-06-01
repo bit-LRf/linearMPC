@@ -13,8 +13,8 @@ void LinearMPC_app::getParameters(param& param){
 
     Eigen::MatrixXd control_start{param.Nu,1};
     control_start <<
-    0.25 ,
-    0.5 ;
+    0 ,
+    0 ;
     param.control_start = control_start;
 
     Eigen::MatrixXd control_max{param.Nu,1};

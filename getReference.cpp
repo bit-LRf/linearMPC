@@ -131,19 +131,23 @@ bool LinearMPC_app::getReference(
         double c = sqrt(pow(ref_path_msg.poses[n + 1].pose.position.x - state(0,0),2) +
                         pow(ref_path_msg.poses[n + 1].pose.position.y - state(1,0),2));
 
-        double theta = acos((pow(a,2) + pow(b,2) - pow(c,2))/(2*a*b));
+        if(a <= 1e-3)//当前位置与起始点足够近
+        {
+            startPose.position.x = ref_path_msg.poses[n].pose.position.x;
+            startPose.position.y = ref_path_msg.poses[n].pose.position.y;
+        }
+        else
+        {
+            double theta = acos((pow(a,2) + pow(b,2) - pow(c,2))/(2*a*b));
 
-        double alpha = a*cos(theta)/b;
+            double alpha = a*cos(theta)/b;
 
-        startPose.position.x = alpha*ref_path_msg.poses[n + 1].pose.position.x + (1 - alpha)*ref_path_msg.poses[n].pose.position.x;
-        startPose.position.y = alpha*ref_path_msg.poses[n + 1].pose.position.y + (1 - alpha)*ref_path_msg.poses[n].pose.position.y;
+            startPose.position.x = alpha*ref_path_msg.poses[n + 1].pose.position.x + (1 - alpha)*ref_path_msg.poses[n].pose.position.x;
+            startPose.position.y = alpha*ref_path_msg.poses[n + 1].pose.position.y + (1 - alpha)*ref_path_msg.poses[n].pose.position.y;
+        }
 
         double phi = atan2(ref_path_msg.poses[n + 1].pose.position.y - ref_path_msg.poses[n].pose.position.y,
                 ref_path_msg.poses[n + 1].pose.position.x - ref_path_msg.poses[n].pose.position.x);
-
-        x_ref_vector(0,0) = startPose.position.x;
-        y_ref_vector(0,0) = startPose.position.y;
-        phi_ref_vector(0,0) = phi;
 
         //移动的点从起点开始，每次移动一个参考距离直到达到参考路径的终点。
         activePose = startPose;
